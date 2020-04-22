@@ -1,14 +1,14 @@
-#ifndef JPEGAVIFCONVERTOR_H
-#define JPEGAVIFCONVERTOR_H
+#ifndef JPEGAVIFCONVERTER_H
+#define JPEGAVIFCONVERTER_H
 
 #include <QIODevice>
 #include "imgconvsettings.h"
 
 
-class JpegAvifConvertor
+class JpegAvifConverter
 {
 public:
-    JpegAvifConvertor(const ImgConvSettings &);
+    JpegAvifConverter(const ImgConvSettings &);
     bool ConvertJpegToAvif(const QString &, const QString &);
     bool ConvertAvifToJpeg(const QString &, const QString &);
 
@@ -16,4 +16,4 @@ private:
     ImgConvSettings settings;
 };
 
-#endif // JPEGAVIFCONVERTOR_H
+#endif // JPEGAVIFCONVERTER_H

@@ -22,14 +22,25 @@ JpegSegReader::JpegSegReader(QIODevice *iodevice)
     Q_CHECK_PTR(iodevice);
     io = iodevice;
 
-    readMarker();
+    io->read(reinterpret_cast<char *>(&currentMarker), sizeof(quint16));
+
+    currentMarker = qFromBigEndian(currentMarker);
+    if (currentMarker == M_SOI || currentMarker == M_SOS || !valid()){
+        currentSize = 0;
+    }
+    else {
+        io->read(reinterpret_cast<char *>(&currentSize), sizeof(quint16));
+        currentSize = qFromBigEndian(currentSize);
+    }
 }
 
 int JpegSegReader::read(QByteArray &byteArray) {
     if (currentSize){
         quint16 size = qToBigEndian(currentSize);
-        byteArray.append(reinterpret_cast<char *>(size), 2);
+        byteArray.append(reinterpret_cast<char *>(&size), 2);
         byteArray.append(io->read(currentSize - 2));
+
+        readMarker();
         return byteArray.length();
     }
 
@@ -47,6 +58,7 @@ void JpegSegReader::skip() {
     if (currentSize){
         io->skip(currentSize - 2);
     }
+    readMarker();
 }
 
 quint16 JpegSegReader::current(){
@@ -58,7 +70,7 @@ quint16 JpegSegReader::size(){
 }
 
 bool JpegSegReader::atEnd(){
-    return io->atEnd() || currentMarker == M_SOS || valid();
+    return io->atEnd() || currentMarker == M_SOS || !valid();
 }
 
 bool JpegSegReader::valid(){

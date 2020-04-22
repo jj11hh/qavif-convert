@@ -29,7 +29,7 @@ SOURCES += \
         dialogsettings.cpp \
         exifdump.cpp \
         imgconvsettings.cpp \
-        jpegavifconvertor.cpp \
+        jpegavifconverter.cpp \
         jpegsegreader.cpp \
         main.cpp \
         mainwindow.cpp
@@ -39,7 +39,7 @@ HEADERS += \
         dialogsettings.h \
         exifdump.h \
         imgconvsettings.h \
-        jpegavifconvertor.h \
+        jpegavifconverter.h \
         jpegsegreader.h \
         mainwindow.h
 

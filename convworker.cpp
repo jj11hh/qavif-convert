@@ -1,5 +1,5 @@
 #include "convworker.h"
-#include "jpegavifconvertor.h"
+#include "jpegavifconverter.h"
 #include <QDirIterator>
 #include <QDebug>
 #include <QThread>
@@ -74,7 +74,7 @@ void ConvWorker::processImage(){
     QString relativePath;
     QString dstPathString;
     QString dstDir;
-    JpegAvifConvertor convertor(settings);
+    JpegAvifConverter convertor(settings);
     QDir src, dst;
     WorkerAction doAction;
 

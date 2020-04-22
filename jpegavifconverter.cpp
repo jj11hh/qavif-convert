@@ -1,4 +1,4 @@
-#include "jpegavifconvertor.h"
+#include "jpegavifconverter.h"
 #include "jpegsegreader.h"
 #include "avif.h"
 #include <cstdio>
@@ -13,9 +13,9 @@ extern "C" {
 #include "turbojpeg.h"
 }
 
-JpegAvifConvertor::JpegAvifConvertor(const ImgConvSettings &convSettings): settings(convSettings) {}
+JpegAvifConverter::JpegAvifConverter(const ImgConvSettings &convSettings): settings(convSettings) {}
 
-bool JpegAvifConvertor::ConvertJpegToAvif(const QString &jpegpath, const QString &avifpath){
+bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString &avifpath){
     tjhandle handle = nullptr;
     int width, height, subsample, colorspace;
     int ret = 0;
@@ -38,6 +38,7 @@ bool JpegAvifConvertor::ConvertJpegToAvif(const QString &jpegpath, const QString
 
     QByteArray icc, exif;
     QBuffer jpeg_io(&jpegBytes);
+    jpeg_io.open(QBuffer::ReadOnly);
     JpegSegReader jpegReader(&jpeg_io);
     auto * jpeg_buf = reinterpret_cast<const uint8_t *>(jpegBytes.constData());
     unsigned long jpeg_size = static_cast<std::make_unsigned<int>::type>(jpegBytes.length());
@@ -58,11 +59,14 @@ bool JpegAvifConvertor::ConvertJpegToAvif(const QString &jpegpath, const QString
 
     // Dump ICC and EXIF here
     while (! jpegReader.atEnd()){
-        if (jpegReader.current() == JpegSegReader::M_APP2){ // ICC Profile was stored in APP2 Segment
-            icc = jpegReader.read();
+        qDebug("Marker 0x%4x got", jpegReader.current());
+        if (jpegReader.current() == JpegSegReader::M_APP1){ // EXIF in APP1 Segment
+            exif += jpegReader.read();
+            qDebug() << "EXIF read, " << exif.length() << "bytes";
         }
-        else if (jpegReader.current() == JpegSegReader::M_APP1){ // EXIF in APP1 Segment
-            exif = jpegReader.read();
+        else if (jpegReader.current() == JpegSegReader::M_APP2){ // ICC Profile was stored in APP2 Segment
+            icc += jpegReader.read();
+            qDebug() << "ICC read, " << icc.length() << "bytes";
         }
 
         jpegReader.skip();
@@ -196,7 +200,7 @@ bool JpegAvifConvertor::ConvertJpegToAvif(const QString &jpegpath, const QString
     return true;
 }
 
-bool JpegAvifConvertor::ConvertAvifToJpeg(const QString &avifpath, const QString &jpegpath){
+bool JpegAvifConverter::ConvertAvifToJpeg(const QString &avifpath, const QString &jpegpath){
     bool ret = true;
 
     avifROData raw;
