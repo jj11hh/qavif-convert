@@ -22,19 +22,43 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-CONFIG += c++11
+CONFIG += c++17
 
 SOURCES += \
+        convworker.cpp \
+        dialogsettings.cpp \
+        exifdump.cpp \
+        imgconvsettings.cpp \
+        jpegavifconvertor.cpp \
+        jpegsegreader.cpp \
         main.cpp \
         mainwindow.cpp
 
 HEADERS += \
+        convworker.h \
+        dialogsettings.h \
+        exifdump.h \
+        imgconvsettings.h \
+        jpegavifconvertor.h \
+        jpegsegreader.h \
         mainwindow.h
 
 FORMS += \
+        dialogsettings.ui \
         mainwindow.ui
+
+DESTDIR = bin
+
+LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libavif/" -lavif -lrav1e -ldav1d -laom -ldl
+LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/lib" -lturbojpeg
+
+INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libavif/include/avif
+INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/include/
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES +=
