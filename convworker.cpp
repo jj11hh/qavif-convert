@@ -101,7 +101,9 @@ void ConvWorker::processImage(){
     dstPathString = dst.filePath(relativePath);
 
     int i;
-    for (i = dstPathString.length() - 1; dstPathString.at(i) != QDir::separator(); i --);
+    for (i = dstPathString.length() - 1; dstPathString.at(i) != '/'; i --);
+    //                                                           ^
+    //                                                           | it works, because Qt will convert for us
     dstDir = dstPathString.chopped(dstPathString.length() - i - 1);
 
     QDir().mkpath(dstDir);
