@@ -13,6 +13,7 @@ DialogSettings::DialogSettings(QWidget *parent, const ImgConvSettings &settings)
     ui->checkAVIFEXIF->setChecked(settings.isSaveAvifExif);
     ui->checkJPEGEXIF->setChecked(settings.isSaveJpegExif);
     ui->sliderJpegQuality->setValue(settings.jpegQuality);
+    ui->sliderEncodeSpeed->setValue(settings.encodeSpeed);
     setWindowIcon(QIcon(":/Icons/Images/icon.png"));
 }
 
@@ -50,7 +51,12 @@ void DialogSettings::on_DialogSettings_accepted()
     settings.isSaveAvifExif = ui->checkAVIFEXIF->checkState();
     settings.isSaveJpegExif = ui->checkJPEGEXIF->checkState();
     settings.jpegQuality = ui->sliderJpegQuality->value();
+    settings.encodeSpeed = ui->sliderEncodeSpeed->value();
 
     emit sendSettings(settings);
 }
 
+void DialogSettings::on_sliderEncodeSpeed_valueChanged(int value)
+{
+    ui->labelEncodeSpeed->setText(QString::number(value));
+}

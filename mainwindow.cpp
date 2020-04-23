@@ -126,17 +126,6 @@ void MainWindow::startConvert(WorkerAction _action){
         return;
     }
 
-    if (infoDst.exists() && !QDir(dst).isEmpty()){
-        QMessageBox::StandardButton resBtn =
-        QMessageBox::question( this, tr("目标文件夹非空"),
-                                        tr("输出文件夹不是空的, 里面的文件可能被覆盖, 确认继续吗?\n"),
-                                        QMessageBox::Cancel | QMessageBox::Yes,
-                                        QMessageBox::Cancel);
-        if (resBtn != QMessageBox::Yes) {
-            return;
-        }
-    }
-
     if (!flagWorking) {
         auto worker = new ConvWorker;
         worker->setAction(_action);
@@ -165,6 +154,7 @@ void MainWindow::taskDone(){
     flagWorking = false;
     ui->actionStartJpegToAvif->setDisabled(false);
     ui->actionStartAvifToJpeg->setDisabled(false);
+    ui->progressBar->setValue(0);
     ui->listTerm->addItem(tr("任务结束"));
 }
 

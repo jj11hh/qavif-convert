@@ -21,18 +21,11 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <property name="bottomMargin">
+       <layout class="QGridLayout" name="gridLayout">
+        <property name="topMargin">
          <number>0</number>
         </property>
-        <item>
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>压缩量化上限</string>
-          </property>
-         </widget>
-        </item>
-        <item>
+        <item row="0" column="1">
          <widget class="QSlider" name="sliderMaxQuantizer">
           <property name="maximum">
            <number>63</number>
@@ -42,7 +35,14 @@
           </property>
          </widget>
         </item>
-        <item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>压缩量化上限</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2">
          <widget class="QLabel" name="labelMaxQuantizer">
           <property name="minimumSize">
            <size>
@@ -55,18 +55,20 @@
           </property>
          </widget>
         </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QLabel" name="label">
+        <item row="1" column="2">
+         <widget class="QLabel" name="labelMinQuantizer">
+          <property name="minimumSize">
+           <size>
+            <width>40</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="text">
-           <string>压缩量化下限</string>
+           <string/>
           </property>
          </widget>
         </item>
-        <item>
+        <item row="1" column="1">
          <widget class="QSlider" name="sliderMinQuantizer">
           <property name="minimum">
            <number>0</number>
@@ -82,14 +84,32 @@
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QLabel" name="labelMinQuantizer">
-          <property name="minimumSize">
-           <size>
-            <width>40</width>
-            <height>0</height>
-           </size>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>压缩量化下限</string>
           </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_6">
+          <property name="text">
+           <string>压缩速度</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QSlider" name="sliderEncodeSpeed">
+          <property name="maximum">
+           <number>10</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QLabel" name="labelEncodeSpeed">
           <property name="text">
            <string/>
           </property>

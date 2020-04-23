@@ -25,6 +25,8 @@ private slots:
 
     void on_sliderJpegQuality_valueChanged(int value);
 
+    void on_sliderEncodeSpeed_valueChanged(int value);
+
 private:
     Ui::DialogSettings *ui;
 

@@ -121,15 +121,23 @@ void ConvWorker::processImage(){
     }
 
     bool result = false;
-    emit resultReady("正在转换" + dstPathString);
-    if (doAction == ConvWorker::JpegToAvif)
-        result = convertor.ConvertJpegToAvif(file, dstPathString);
-    else if (doAction == ConvWorker::AvifToJpeg)
-        result = convertor.ConvertAvifToJpeg(file, dstPathString);
+    emit resultReady(tr("正在转换") + dstPathString);
+    qDebug() << "converting " << file;
+    qDebug() << "to " << dstPathString;
 
+    if (QFileInfo::exists(dstPathString)){
+        emit resultReady(tr("文件已存在，跳过"));
+    }
+    else {
+        if (doAction == ConvWorker::JpegToAvif)
+            result = convertor.ConvertJpegToAvif(file, dstPathString);
+        else if (doAction == ConvWorker::AvifToJpeg)
+            result = convertor.ConvertAvifToJpeg(file, dstPathString);
+
+        emit resultReady(result ? tr("成功") : tr("失败"));
+    }
     file_passed ++;
     emit progressReady(file_passed * 100 / file_count);
-    emit resultReady(result ? "成功" : "失败");
 
     QTimer::singleShot(0, this, SLOT(processImage()));
 }

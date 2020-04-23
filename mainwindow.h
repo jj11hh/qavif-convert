@@ -45,7 +45,7 @@ private:
     void startConvert(WorkerAction);
     bool flagWorking = false;
     QThread workerThread;
-    ImgConvSettings settings = {10, 10, 90, true, true};
+    ImgConvSettings settings = {10, 10, 8, 90, true, true};
     Ui::MainWindow *ui;
     DialogSettings *dialogSettings;
 };
