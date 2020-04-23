@@ -13,6 +13,7 @@ DialogSettings::DialogSettings(QWidget *parent, const ImgConvSettings &settings)
     ui->checkAVIFEXIF->setChecked(settings.isSaveAvifExif);
     ui->checkJPEGEXIF->setChecked(settings.isSaveJpegExif);
     ui->sliderJpegQuality->setValue(settings.jpegQuality);
+    setWindowIcon(QIcon(":/Icons/Images/icon.png"));
 }
 
 DialogSettings::~DialogSettings()
