@@ -49,14 +49,23 @@ FORMS += \
 
 DESTDIR = bin
 
-LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libavif/" -lavif -lrav1e -ldav1d -laom -ldl
+LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libavif/" -lavif -lrav1e -ldav1d -laom
 LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/lib" -lturbojpeg
 
 INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libavif/include/avif
 INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/include/
 
+
 RC_ICONS = Images/icon.ico
 
+win32-msvc* {
+    QMAKE_CXXFLAGS += /utf-8
+    LIBS += -lws2_32 -ladvapi32 -lpsapi -lUserenv
+}
+
+unix {
+    LIBS += -ldl
+}
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

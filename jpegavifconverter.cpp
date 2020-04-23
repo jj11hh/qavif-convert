@@ -131,7 +131,6 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     avifGetPixelFormatInfo(avifImage->yuvFormat, &info);
 
     int shiftedW = (avifImage->width + info.chromaShiftX) >> info.chromaShiftX;
-    int shiftedH = (avifImage->height + info.chromaShiftY) >> info.chromaShiftY;
 
     int uvRowBytes = channelSize * shiftedW;
 
@@ -196,7 +195,7 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     encoder->maxThreads = QThread::idealThreadCount();
     encoder->minQuantizer = settings.minQuantizer;
     encoder->maxQuantizer = settings.maxQuantizer;
-    encoder->codecChoice = AVIF_CODEC_CHOICE_RAV1E;
+    encoder->codecChoice = AVIF_CODEC_CHOICE_AOM;
     encoder->speed = 8; // default speed for libavif
 
     qDebug("starting encode: mt=%d, minQ=%d, maxQ=%d, speed=%d",
