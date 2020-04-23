@@ -91,6 +91,7 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     auto avifImage = avifImageCreate(width, height, depth, yuv_format);
                                                                     // [open] avifImage
 
+    // Copy ICC and EXIF
     if (icc.length()){
         avifImageSetProfileICC(avifImage,
             reinterpret_cast<uint8_t *>(icc.data()),
@@ -106,7 +107,40 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     // Let's try to decode/encode it in YUV PLANES WAY
 
     // First, allocate memory for planes
-    avifImageAllocatePlanes(avifImage, AVIF_PLANES_YUV);
+
+    unsigned long y_size, u_size, v_size;
+    y_size = tjPlaneSizeYUV(0, width, 0, height, subsample);
+    u_size = tjPlaneSizeYUV(1, width, 0, height, subsample);
+    v_size = tjPlaneSizeYUV(2, width, 0, height, subsample);
+
+    int y_w, u_w, v_w;
+    y_w = tjPlaneWidth(0, width, subsample);
+    u_w = tjPlaneWidth(1, width, subsample);
+    v_w = tjPlaneWidth(2, width, subsample);
+
+    qDebug("as TurboJpeg needed, size of [y, u, v] == [%lu, %lu, %lu]", y_size, u_size, v_size);
+    qDebug("width of [y, u, v] == [%d, %d, %d]", y_w, u_w, v_w);
+
+    //avifImageAllocatePlanes(avifImage, AVIF_PLANES_YUV);
+    // turbojpeg will pad memory, but libavif don't
+    // let's hack it
+
+    int channelSize = avifImageUsesU16(avifImage) ? 2 : 1;
+    int fullRowBytes = channelSize * avifImage->width;
+    avifPixelFormatInfo info;
+    avifGetPixelFormatInfo(avifImage->yuvFormat, &info);
+
+    int shiftedW = (avifImage->width + info.chromaShiftX) >> info.chromaShiftX;
+    int shiftedH = (avifImage->height + info.chromaShiftY) >> info.chromaShiftY;
+
+    int uvRowBytes = channelSize * shiftedW;
+
+    avifImage->yuvRowBytes[AVIF_CHAN_Y] = (uint32_t)fullRowBytes;
+    avifImage->yuvPlanes[AVIF_CHAN_Y] = (uint8_t *)avifAlloc(y_size);
+    avifImage->yuvRowBytes[AVIF_CHAN_U] = (uint32_t)uvRowBytes;
+    avifImage->yuvPlanes[AVIF_CHAN_U] = (uint8_t *)avifAlloc(u_size);
+    avifImage->yuvRowBytes[AVIF_CHAN_V] = (uint32_t)uvRowBytes;
+    avifImage->yuvPlanes[AVIF_CHAN_V] = (uint8_t *)avifAlloc(v_size);
 
     tjDecompressToYUVPlanes( handle,
                              jpeg_buf,
@@ -118,10 +152,11 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
                              0);
 
 
+    tjDestroy(handle);
+
     if (ret < 0){
         qCritical("decompress failed: %s", tjGetErrorStr());
         avifImageDestroy(avifImage);                                // [close] avifImage
-        tjDestroy(handle);                                          // [close] handle
         return false;                                               // !EXIT!
     }
 
@@ -151,11 +186,11 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     avifRGBImageFreePixels(&rgb);
 */
 
+
     auto encoder = avifEncoderCreate();
     if (! encoder) {
         qCritical("can't create avif encoder");
         avifImageDestroy(avifImage);
-        tjDestroy(handle);
         avifFile.close();
     }
     encoder->maxThreads = QThread::idealThreadCount();
@@ -174,10 +209,9 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     auto&& encodeResult = avifEncoderWrite(encoder, avifImage, &raw);
     if (encodeResult != AVIF_RESULT_OK){
         qCritical("avif encode failed");
-        avifEncoderDestroy(encoder);
-        avifRWDataFree(&raw);
         avifImageDestroy(avifImage);
-        tjDestroy(handle);
+        avifRWDataFree(&raw);
+        avifEncoderDestroy(encoder);
         avifFile.close();
         return false;
     }
@@ -185,10 +219,9 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     qint64&& write_size = avifFile.write(reinterpret_cast<const char*>(raw.data), static_cast<qint64>(raw.size));
     qint64&& should_write = static_cast<qint64>(raw.size);
 
-    avifEncoderDestroy(encoder);
-    avifRWDataFree(&raw);
     avifImageDestroy(avifImage);
-    tjDestroy(handle);
+    avifRWDataFree(&raw);
+    avifEncoderDestroy(encoder);
     avifFile.close();
 
     if (write_size != should_write) {
