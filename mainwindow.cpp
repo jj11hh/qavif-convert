@@ -8,6 +8,8 @@
 #include <QMutex>
 #include <QStandardPaths>
 #include <QDialog>
+#include <QIcon>
+#include <QStyle>
 
 static const QString getPictureDir(){
     QStringList&& pictures = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
@@ -29,6 +31,12 @@ MainWindow::MainWindow(QWidget *parent) :
     workerThread.start();
     ui->lESrcLoc->setText(getPictureDir());
     ui->lEDstLoc->setText(getPictureDir());
+
+    auto &&style = qApp->style();
+    ui->btnDestSelect->setIcon(style->standardIcon(QStyle::SP_DirOpenIcon));
+    ui->btnSourceSelect->setIcon(style->standardIcon(QStyle::SP_DirOpenIcon));
+
+    setWindowIcon(QIcon(":/Icons/Images/icon.png"));
 }
 
 MainWindow::~MainWindow()

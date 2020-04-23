@@ -55,6 +55,8 @@ LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/lib" -lturbojpeg
 INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libavif/include/avif
 INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/include/
 
+RC_ICONS = Images/icon.ico
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -62,3 +64,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 DISTFILES +=
+
+RESOURCES += \
+    icons.qrc
