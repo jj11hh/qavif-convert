@@ -13,6 +13,50 @@ extern "C" {
 #include "turbojpeg.h"
 }
 
+static void rearrage(uint8_t *src_buffer, uint8_t *dst_buffer, size_t src_size, size_t dst_size, int height){
+    if (src_size == dst_size){
+        if (src_buffer != dst_buffer)
+            memmove(dst_buffer, src_buffer, src_size * (size_t)height);
+    }
+
+    if (src_size > dst_size){
+        for (int i = 0; i < height; i ++){
+            memmove(dst_buffer + (dst_size * (size_t)i), src_buffer + (src_size * (size_t)i), dst_size);
+        }
+    }
+    else {
+        for (int i = height - 1; i >= 0; i --) {
+            memmove(dst_buffer + (dst_size * (size_t)i), src_buffer + (src_size * (size_t)i), src_size);
+        }
+    }
+}
+
+static inline avifPixelFormat format_j2a(int subsample){
+    switch (subsample){
+    case TJSAMP_420:
+        return AVIF_PIXEL_FORMAT_YUV420;
+    case TJSAMP_422:
+        return AVIF_PIXEL_FORMAT_YUV422;
+    case TJSAMP_444:
+        return AVIF_PIXEL_FORMAT_YUV444;
+    default:
+        return AVIF_PIXEL_FORMAT_NONE;
+    }
+}
+
+static inline int format_a2j(avifPixelFormat format){
+    switch (format){
+    case AVIF_PIXEL_FORMAT_YUV420:
+        return TJSAMP_420;
+    case AVIF_PIXEL_FORMAT_YUV422:
+        return TJSAMP_422;
+    case AVIF_PIXEL_FORMAT_YUV444:
+        return TJSAMP_444;
+    default:
+        return -1;
+    }
+}
+
 JpegAvifConverter::JpegAvifConverter(const ImgConvSettings &convSettings): settings(convSettings) {}
 
 bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString &avifpath){
@@ -72,20 +116,11 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
         jpegReader.skip();
     }
 
-    switch (subsample){
-    case TJSAMP_420:
-        yuv_format = AVIF_PIXEL_FORMAT_YUV420;
-        break;
-    case TJSAMP_422:
-        yuv_format = AVIF_PIXEL_FORMAT_YUV422;
-        break;
-    case TJSAMP_444:
-        yuv_format = AVIF_PIXEL_FORMAT_YUV444;
-        break;
-    default: // Can't handle this format, it's a FATAL ERROR
+    yuv_format = format_j2a(subsample);
+
+    if (yuv_format == AVIF_PIXEL_FORMAT_NONE){
         tjDestroy(handle);
         qCritical("Unsupported format");
-        return false;
     }
 
     auto avifImage = avifImageCreate(width, height, depth, yuv_format);
@@ -104,38 +139,61 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
             static_cast<std::make_unsigned<int>::type>(exif.length()));
     }
 
-    if (ret < 0){
-        qCritical("decompress failed: %s", tjGetErrorStr());
-        avifImageDestroy(avifImage);                                // [close] avifImage
-        return false;                                               // !EXIT!
-    }
+    // Let's try to decode/encode it in YUV PLANES WAY
 
+    // First, allocate memory for planes
 
-    avifRGBImage rgb;
-    memset(&rgb, 0, sizeof(rgb));
+    unsigned long y_size, u_size, v_size;
+    y_size = tjPlaneSizeYUV(0, width, 0, height, subsample);
+    u_size = tjPlaneSizeYUV(1, width, 0, height, subsample);
+    v_size = tjPlaneSizeYUV(2, width, 0, height, subsample);
 
-    avifRGBImageSetDefaults(&rgb, avifImage);
-    rgb.format = AVIF_RGB_FORMAT_RGB;
-    rgb.depth = 8;
-    avifRGBImageAllocatePixels(&rgb);                               // [open] rgb
+    int y_w, u_w, v_w;
+    y_w = tjPlaneWidth(0, width, subsample);
+    u_w = tjPlaneWidth(1, width, subsample);
+    v_w = tjPlaneWidth(2, width, subsample);
 
-    ret = tjDecompress2(handle, jpeg_buf, jpeg_size,
-                             rgb.pixels, width, 0, height, TJPF_RGB, 0);
+    qDebug("as TurboJpeg needed, size of [y, u, v] == [%lu, %lu, %lu]", y_size, u_size, v_size);
+    qDebug("width of [y, u, v] == [%d, %d, %d]", y_w, u_w, v_w);
+
+    //avifImageAllocatePlanes(avifImage, AVIF_PLANES_YUV);
+    // turbojpeg will pad memory, but libavif don't
+    // let's hack it
+
+    int channelSize = avifImageUsesU16(avifImage) ? 2 : 1;
+    int fullRowBytes = channelSize * (int)avifImage->width;
+    avifPixelFormatInfo info;
+    avifGetPixelFormatInfo(avifImage->yuvFormat, &info);
+    int shiftedW = ((int)avifImage->width + info.chromaShiftX) >> info.chromaShiftX;
+    // int shiftedH = ((int)avifImage->height + info.chromaShiftY) >> info.chromaShiftY;
+
+    int uvRowBytes = channelSize * shiftedW;
+
+    uint8_t * plane_y = (uint8_t *) avifAlloc(y_size);
+    uint8_t * plane_u = (uint8_t *) avifAlloc(u_size);
+    uint8_t * plane_v = (uint8_t *) avifAlloc(v_size);
+
+    avifImage->yuvRowBytes[AVIF_CHAN_Y] = (uint32_t)fullRowBytes;
+    avifImage->yuvPlanes[AVIF_CHAN_Y] = plane_y;
+    avifImage->yuvRowBytes[AVIF_CHAN_U] = (uint32_t)uvRowBytes;
+    avifImage->yuvPlanes[AVIF_CHAN_U] = plane_u;
+    avifImage->yuvRowBytes[AVIF_CHAN_V] = (uint32_t)uvRowBytes;
+    avifImage->yuvPlanes[AVIF_CHAN_V] = plane_v;
+
+    tjDecompressToYUVPlanes( handle,
+                             jpeg_buf,
+                             jpeg_size,
+                             avifImage->yuvPlanes, // YES
+                             width,
+                             nullptr,
+                             height,
+                             0);
+
+    rearrage(plane_y, plane_y, (size_t)y_w, (size_t)fullRowBytes, height);
+    //rearrage(plane_u, plane_y, (size_t)u_w, (size_t)uvRowBytes, height);
+    //rearrage(plane_v, plane_y, (size_t)v_w, (size_t)uvRowBytes, height);
 
     tjDestroy(handle);
-
-    if (ret < 0){
-        qCritical("decompress failed: %s", tjGetErrorStr());
-        avifRGBImageFreePixels(&rgb);                               // [close] rgb
-        avifImageDestroy(avifImage);                                // [close] avifImage
-        avifFile.close();                                           // [close] avifFile
-
-        return false;                                               // !EXIT!
-    }
-    avifImageRGBToYUV(avifImage, &rgb);
-    avifRGBImageFreePixels(&rgb);
-
-
     auto encoder = avifEncoderCreate();
     if (! encoder) {
         qCritical("can't create avif encoder");
@@ -216,33 +274,53 @@ bool JpegAvifConverter::ConvertAvifToJpeg(const QString &avifpath, const QString
 
     if (decodeResult == AVIF_RESULT_OK){
         qDebug("avif decode ok");
-        switch (image->yuvFormat){
-        case AVIF_PIXEL_FORMAT_YUV420:
-            subsample = TJSAMP_420;
-            break;
-        case AVIF_PIXEL_FORMAT_YUV422:
-            subsample = TJSAMP_422;
-            break;
-        case AVIF_PIXEL_FORMAT_YUV444:
-            subsample = TJSAMP_444;
-            break;
-        default:
-            subsample = -1;
+        subsample = format_a2j(image->yuvFormat);
+
+        int width = (int)image->width;
+        int height = (int)image->height;
+        int channelSize = avifImageUsesU16(image) ? 2 : 1;
+        int fullRowBytes = channelSize * (int)image->width;
+        avifPixelFormatInfo info;
+        avifGetPixelFormatInfo(image->yuvFormat, &info);
+        // int shiftedW = ((int)image->width + info.chromaShiftX) >> info.chromaShiftX;
+        // int shiftedH = ((int)avifImage->height + info.chromaShiftY) >> info.chromaShiftY;
+        // int uvRowBytes = channelSize * shiftedW;
+
+        size_t y_size = tjPlaneSizeYUV(0, width, 0, height, subsample);
+
+        int y_w = tjPlaneWidth(0, width, subsample);
+
+        uint8_t * y_buffer = nullptr;
+        uint8_t * yuvPlanes[3];
+
+        if (y_w != fullRowBytes){
+            y_buffer = new uint8_t[(size_t)y_size];
+            rearrage(image->yuvPlanes[0], y_buffer, (size_t)fullRowBytes, (size_t)y_w, height);
+            yuvPlanes[0] = y_buffer;
+            yuvPlanes[1] = image->yuvPlanes[1];
+            yuvPlanes[2] = image->yuvPlanes[2];
         }
+        else {
+            yuvPlanes[0] = image->yuvPlanes[0];
+            yuvPlanes[1] = image->yuvPlanes[1];
+            yuvPlanes[2] = image->yuvPlanes[2];
+        }
+
         if (subsample != -1){
             handle = tjInitCompress();
             if (handle != nullptr){
-                avifRGBImage rgb;
-                avifRGBImageSetDefaults(&rgb, image);
-                rgb.format = AVIF_RGB_FORMAT_RGB;
-                rgb.depth = 8;
-                avifRGBImageAllocatePixels(&rgb);
-                avifImageYUVToRGB(image, &rgb);
-                encodeResult = tjCompress2(handle, rgb.pixels, image->width,
-                                           0, image->height, TJPF_RGB,
-                                           &jpegBuf, &jpegSize, subsample,
-                                           settings.jpegQuality, 0);
-                avifRGBImageFreePixels(&rgb);
+                encodeResult = tjCompressFromYUVPlanes(
+                            handle,
+                            const_cast<const uint8_t**>(reinterpret_cast<uint8_t**>(yuvPlanes)),
+                            static_cast<std::make_signed<unsigned int>::type>(image->width),
+                            nullptr,
+                            static_cast<std::make_signed<unsigned int>::type>(image->height),
+                            subsample,
+                            &jpegBuf,
+                            &jpegSize,
+                            settings.jpegQuality,
+                            0
+                            );
                 if (encodeResult != -1){
                     qDebug("turbojpeg encode ok");
                     // Here, We got the metadatas from avif
@@ -325,6 +403,9 @@ bool JpegAvifConverter::ConvertAvifToJpeg(const QString &avifpath, const QString
             qCritical("unsupported format");
             ret = false;
         }
+
+        // those points may not set, but it's safe to delete them
+        delete y_buffer;
     }
     else {
         qCritical("avif decode failed");

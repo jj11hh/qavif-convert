@@ -190,7 +190,7 @@
       <item>
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>质量为90时,对图像质量几乎无损害, 不建议更改</string>
+         <string>100 为无损，90 为高品质， 75 为中等， 50 以下质量较差</string>
         </property>
        </widget>
       </item>
