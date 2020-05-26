@@ -1,6 +1,6 @@
 #include "jpegavifconverter.h"
 #include "jpegsegreader.h"
-#include "avif.h"
+#include "avif/avif.h"
 #include <cstdio>
 #include <QFile>
 #include <QDebug>

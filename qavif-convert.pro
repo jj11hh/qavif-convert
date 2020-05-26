@@ -8,7 +8,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = ImgConv
+TARGET = qavif-convert
 TEMPLATE = app
 
 # The following define makes your compiler emit warnings if you use
@@ -49,12 +49,8 @@ FORMS += \
 
 DESTDIR = bin
 
-LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libavif/" -lavif -lrav1e -ldav1d -laom
-LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/lib" -lturbojpeg
-
-INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libavif/include/avif
-INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/libjpeg-turbo-2.0.4/include/
-
+LIBS += -L"$$_PRO_FILE_PWD_/thirdparty/lib" -lavif -laom -ldav1d -lrav1e -lturbojpeg-static
+INCLUDEPATH += $$_PRO_FILE_PWD_/thirdparty/include
 
 RC_ICONS = Images/icon.ico
 
