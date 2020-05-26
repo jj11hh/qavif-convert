@@ -2,6 +2,7 @@
 #include "jpegsegreader.h"
 #include "avif/avif.h"
 #include <cstdio>
+#include <cstring>
 #include <QFile>
 #include <QDebug>
 #include <QBuffer>
@@ -59,7 +60,7 @@ static inline int format_a2j(avifPixelFormat format){
 
 JpegAvifConverter::JpegAvifConverter(const ImgConvSettings &convSettings): settings(convSettings) {}
 
-bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString &avifpath){
+bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString &avifpath) const{
     tjhandle handle = nullptr;
     int width, height, subsample, colorspace;
     int ret = 0;
@@ -73,7 +74,7 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
         qCritical("Can't open file: %s", jpegpath.toUtf8().constData());
         return false;
     }
-    if (!avifFile.open(QIODevice::ReadWrite)){                      // [open]  avifFile
+    if (!avifFile.open(QIODevice::WriteOnly)){                      // [open]  avifFile
         qCritical("Can't open file: %s", avifpath.toUtf8().constData());
         return false;                                               // !EXIT!
     }
@@ -112,8 +113,9 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
             icc += jpegReader.read();
             qDebug() << "ICC read, " << icc.length() << "bytes";
         }
-
-        jpegReader.skip();
+        else {
+            jpegReader.skip();
+        }
     }
 
     yuv_format = format_j2a(subsample);
@@ -124,7 +126,6 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     }
 
     auto avifImage = avifImageCreate(width, height, depth, yuv_format);
-                                                                    // [open] avifImage
 
     // Copy ICC and EXIF
     if (icc.length()){
@@ -139,6 +140,10 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
             static_cast<std::make_unsigned<int>::type>(exif.length()));
     }
 
+    // SRGB color space
+    avifImage->colorPrimaries = (avifColorPrimaries)1;
+    avifImage->transferCharacteristics = (avifTransferCharacteristics)13;
+    avifImage->matrixCoefficients = (avifMatrixCoefficients)5;
     // Let's try to decode/encode it in YUV PLANES WAY
 
     // First, allocate memory for planes
@@ -198,7 +203,7 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     if (! encoder) {
         qCritical("can't create avif encoder");
         avifImageDestroy(avifImage);
-        avifFile.close();
+        return false;
     }
     encoder->maxThreads = QThread::idealThreadCount();
     encoder->minQuantizer = settings.minQuantizer;
@@ -219,7 +224,6 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
         avifImageDestroy(avifImage);
         avifRWDataFree(&raw);
         avifEncoderDestroy(encoder);
-        avifFile.close();
         return false;
     }
 
@@ -229,7 +233,6 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     avifImageDestroy(avifImage);
     avifRWDataFree(&raw);
     avifEncoderDestroy(encoder);
-    avifFile.close();
 
     if (write_size != should_write) {
         qCritical("wrote size don't match file size");
@@ -240,14 +243,14 @@ bool JpegAvifConverter::ConvertJpegToAvif(const QString &jpegpath, const QString
     return true;
 }
 
-bool JpegAvifConverter::ConvertAvifToJpeg(const QString &avifpath, const QString &jpegpath){
+bool JpegAvifConverter::ConvertAvifToJpeg(const QString &avifpath, const QString &jpegpath) const{
     bool ret = true;
 
     avifROData raw;
     QFile jpegFile(jpegpath);
     QFile avifFile(avifpath);
 
-    if (!jpegFile.open(QIODevice::ReadWrite)){                        // [open]  jpegFile
+    if (!jpegFile.open(QIODevice::WriteOnly)){                        // [open]  jpegFile
         qCritical("Can't open file: %s", jpegpath.toUtf8().constData());
         return false;
     }
@@ -414,5 +417,60 @@ bool JpegAvifConverter::ConvertAvifToJpeg(const QString &avifpath, const QString
     }
     avifDecoderDestroy(decoder);
     avifImageDestroy(image);
+    return ret;
+}
+
+bool JpegAvifConverter::ImageToAvif(QImage &image, const QString &path) const {
+    if (image.isNull())
+        return false;
+
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly))
+        return false;
+
+    bool ret = true;
+    int depth = 8;
+    avifPixelFormat format = AVIF_PIXEL_FORMAT_YUV420;
+    avifImage *dimage = avifImageCreate(image.width(), image.height(), depth, format);
+
+    avifRGBImage rgb;
+    avifRGBImageSetDefaults(&rgb, dimage);
+    rgb.depth = 8;
+    rgb.format = AVIF_RGB_FORMAT_RGBA;
+
+    if (image.format() != QImage::Format_RGBA8888){
+        image.convertTo(QImage::Format_RGBA8888);
+    }
+
+    rgb.pixels = image.bits();
+    rgb.rowBytes = image.bytesPerLine();
+
+    // SRGB color space
+    dimage->colorPrimaries = AVIF_COLOR_PRIMARIES_IEC61966_2_4;
+    dimage->transferCharacteristics
+            = AVIF_TRANSFER_CHARACTERISTICS_SRGB;
+
+    avifImageRGBToYUV(dimage, &rgb);
+
+    avifRWData output = AVIF_DATA_EMPTY;
+    avifEncoder *encoder = avifEncoderCreate();
+    encoder->maxThreads = QThread::idealThreadCount();
+    encoder->maxQuantizer = settings.maxQuantizer;
+    encoder->minQuantizer = settings.minQuantizer;
+    encoder->maxQuantizerAlpha = settings.maxQuantizer;
+    encoder->minQuantizerAlpha = settings.minQuantizer;
+    avifResult encoderResult = avifEncoderWrite(encoder, dimage, &output);
+    if (encoderResult == AVIF_RESULT_OK){
+        file.write((char *)output.data, output.size);
+        ret = true;
+    }
+    else {
+        ret = false;
+    }
+
+    avifImageDestroy(dimage);
+    avifRWDataFree(&output);
+    avifEncoderDestroy(encoder);
+
     return ret;
 }
