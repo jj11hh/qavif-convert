@@ -1,7 +1,7 @@
 #ifndef DIALOGSETTINGS_H
 #define DIALOGSETTINGS_H
 
-#include "imgconvsettings.h"
+#include "convertsettings.h"
 #include <QDialog>
 
 namespace Ui {
@@ -13,7 +13,7 @@ class DialogSettings : public QDialog
     Q_OBJECT
 
 public:
-    explicit DialogSettings(QWidget *parent, const ImgConvSettings &settings);
+    explicit DialogSettings(QWidget *parent, const ConvertSettings &settings);
     ~DialogSettings();
 
 private slots:
@@ -31,7 +31,7 @@ private:
     Ui::DialogSettings *ui;
 
 signals:
-    void sendSettings(const ImgConvSettings &);
+    void sendSettings(const ConvertSettings &);
 };
 
 #endif // DIALOGSETTINGS_H

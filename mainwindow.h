@@ -2,8 +2,8 @@
 #define MAINWINDOW_H
 
 #include "dialogsettings.h"
-#include "imgconvsettings.h"
-#include "convworker.h"
+#include "convertsettings.h"
+#include "convertworker.h"
 #include <QMainWindow>
 #include <QStringList>
 #include <QStringListModel>
@@ -30,7 +30,7 @@ private slots:
     void on_btnDestSelect_clicked();
     void handleResults(const QString &);
     void updateProgress(int);
-    void handleSettings(const ImgConvSettings&);
+    void handleSettings(const ConvertSettings&);
     void taskDone();
     void on_actionSettingsP_triggered();
     void on_actionStartJpegToAvif_triggered();
@@ -45,7 +45,7 @@ private:
     void startConvert(WorkerAction);
     bool flagWorking = false;
     QThread workerThread;
-    ImgConvSettings settings = {10, 10, 8, 100, true, true};
+    ConvertSettings settings = {10, 10, 8, 100, true, true};
     Ui::MainWindow *ui;
     DialogSettings *dialogSettings;
 };

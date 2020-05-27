@@ -1,37 +1,37 @@
-#include "convworker.h"
+#include "convertworker.h"
 #include "jpegavifconverter.h"
 #include <QDirIterator>
 #include <QDebug>
 #include <QThread>
 #include <QTimer>
 
-void ConvWorker::setPath(const QString &src, const QString &dst){
+void ConvertWorker::setPath(const QString &src, const QString &dst){
     mutex.lock();
     this->srcPath = src;
     this->dstPath = dst;
     mutex.unlock();
 }
 
-void ConvWorker::setParameter(const ImgConvSettings & param){
+void ConvertWorker::setParameter(const ConvertSettings & param){
     mutex.lock();
     settings = param;
     mutex.unlock();
 }
 
-void ConvWorker::setAction(WorkerAction _action){
+void ConvertWorker::setAction(WorkerAction _action){
     mutex.lock();
     action = _action;
     mutex.unlock();
 }
 
-void ConvWorker::abort(){
+void ConvertWorker::abort(){
     qDebug() << "user issued abort";
     mutex.lock();
     flagAbort = true;
     mutex.unlock();
 }
 
-void ConvWorker::doWork()
+void ConvertWorker::doWork()
 {
     QDir src;
     QDir dst;
@@ -49,9 +49,9 @@ void ConvWorker::doWork()
     file_passed = 0;
     files.clear();
 
-    if (doAction == ConvWorker::JpegToAvif)
+    if (doAction == ConvertWorker::JpegToAvif)
         fileFilter << "*.jpeg" << "*.jpg";
-    else if (doAction == ConvWorker::AvifToJpeg)
+    else if (doAction == ConvertWorker::AvifToJpeg)
         fileFilter << "*.avif";
 
 
@@ -70,7 +70,7 @@ void ConvWorker::doWork()
     QTimer::singleShot(0, this, SLOT(processImage()));
 }
 
-void ConvWorker::processImage(){
+void ConvertWorker::processImage(){
     QString relativePath;
     QString dstPathString;
     QString dstDir;
@@ -112,10 +112,10 @@ void ConvWorker::processImage(){
     dstPathString.chop(dstPathString.length() - i - 1);
 
     switch (doAction){
-    case ConvWorker::JpegToAvif:
+    case ConvertWorker::JpegToAvif:
         dstPathString.append("avif");
         break;
-    case ConvWorker::AvifToJpeg:
+    case ConvertWorker::AvifToJpeg:
         dstPathString.append("jpg");
         break;
     }
@@ -129,9 +129,9 @@ void ConvWorker::processImage(){
         emit resultReady(tr("文件已存在，跳过"));
     }
     else {
-        if (doAction == ConvWorker::JpegToAvif)
+        if (doAction == ConvertWorker::JpegToAvif)
             result = convertor.ConvertJpegToAvif(file, dstPathString);
-        else if (doAction == ConvWorker::AvifToJpeg)
+        else if (doAction == ConvertWorker::AvifToJpeg)
             result = convertor.ConvertAvifToJpeg(file, dstPathString);
 
         emit resultReady(result ? tr("成功") : tr("失败"));

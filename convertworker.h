@@ -1,22 +1,22 @@
-#ifndef CONVWORKER_H
-#define CONVWORKER_H
+#ifndef CONVERTWORKER_H
+#define CONVERTWORKER_H
 
 #include <QMutex>
 
-#include "imgconvsettings.h"
+#include "convertsettings.h"
 
 enum WorkerAction {
     ActionJpegToAvif,
     ActionAvifToJpeg
 };
 
-class ConvWorker: public QObject {
+class ConvertWorker: public QObject {
     Q_OBJECT
     QString srcPath;
     QString dstPath;
     bool flagAbort = false;
     QMutex mutex;
-    ImgConvSettings settings;
+    ConvertSettings settings;
     WorkerAction action = ActionJpegToAvif;
     QStringList files;
     int file_count;
@@ -28,7 +28,7 @@ public:
 
     void setAction(WorkerAction);
     void setPath(const QString &, const QString &);
-    void setParameter(const ImgConvSettings &);
+    void setParameter(const ConvertSettings &);
 
 public slots:
     void abort();
@@ -43,4 +43,4 @@ signals:
     void workDone();
 };
 
-#endif // CONVWORKER_H
+#endif // CONVERTWORKER_H

@@ -25,22 +25,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++17
 
 SOURCES += \
-        convworker.cpp \
+        convertsettings.cpp \
+        convertworker.cpp \
         dialogsettings.cpp \
-        exifdump.cpp \
-        imgconvsettings.cpp \
         jpegavifconverter.cpp \
-        jpegsegreader.cpp \
+        jpegheaderreader.cpp \
         main.cpp \
         mainwindow.cpp
 
 HEADERS += \
-        convworker.h \
+        convertsettings.h \
+        convertworker.h \
         dialogsettings.h \
-        exifdump.h \
-        imgconvsettings.h \
         jpegavifconverter.h \
-        jpegsegreader.h \
+        jpegheaderreader.h \
         mainwindow.h
 
 FORMS += \

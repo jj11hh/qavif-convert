@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include <QApplication>
-#include "imgconvsettings.h"
+#include "convertsettings.h"
 
 int main(int argc, char *argv[])
 {

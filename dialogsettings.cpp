@@ -1,7 +1,7 @@
 #include "dialogsettings.h"
 #include "ui_dialogsettings.h"
 
-DialogSettings::DialogSettings(QWidget *parent, const ImgConvSettings &settings) :
+DialogSettings::DialogSettings(QWidget *parent, const ConvertSettings &settings) :
     QDialog(parent),
     ui(new Ui::DialogSettings)
 {
@@ -45,7 +45,7 @@ void DialogSettings::on_sliderJpegQuality_valueChanged(int value)
 
 void DialogSettings::on_DialogSettings_accepted()
 {
-    ImgConvSettings settings;
+    ConvertSettings settings;
     settings.maxQuantizer = ui->sliderMaxQuantizer->value();
     settings.minQuantizer = ui->sliderMinQuantizer->value();
     settings.isSaveAvifExif = ui->checkAVIFEXIF->checkState();

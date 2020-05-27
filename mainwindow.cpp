@@ -70,7 +70,7 @@ void MainWindow::updateProgress(int percent){
     ui->progressBar->setValue(percent);
 }
 
-void MainWindow::handleSettings(const ImgConvSettings &new_settings){
+void MainWindow::handleSettings(const ConvertSettings &new_settings){
     settings = new_settings;
 }
 
@@ -127,17 +127,17 @@ void MainWindow::startConvert(WorkerAction _action){
     }
 
     if (!flagWorking) {
-        auto worker = new ConvWorker;
+        auto worker = new ConvertWorker;
         worker->setAction(_action);
         worker->setPath(src, dst);
         worker->setParameter(settings);
         worker->moveToThread(&workerThread);
-        connect(worker, &ConvWorker::resultReady, this, &MainWindow::handleResults);
-        connect(worker, &ConvWorker::progressReady, this, &MainWindow::updateProgress);
-        connect(worker, &ConvWorker::workDone, this, &MainWindow::taskDone);
-        connect(worker, &ConvWorker::workDone, worker, &ConvWorker::deleteLater);
-        connect(this, &MainWindow::taskAbort, worker, &ConvWorker::abort);
-        connect(this, &MainWindow::taskStart, worker, &ConvWorker::doWork);
+        connect(worker, &ConvertWorker::resultReady, this, &MainWindow::handleResults);
+        connect(worker, &ConvertWorker::progressReady, this, &MainWindow::updateProgress);
+        connect(worker, &ConvertWorker::workDone, this, &MainWindow::taskDone);
+        connect(worker, &ConvertWorker::workDone, worker, &ConvertWorker::deleteLater);
+        connect(this, &MainWindow::taskAbort, worker, &ConvertWorker::abort);
+        connect(this, &MainWindow::taskStart, worker, &ConvertWorker::doWork);
         connect(&workerThread, &QThread::finished, this, &QThread::deleteLater);
 
         ui->actionStartJpegToAvif->setDisabled(true);
@@ -160,12 +160,12 @@ void MainWindow::taskDone(){
 
 void MainWindow::on_actionStartJpegToAvif_triggered()
 {
-    startConvert(ConvWorker::JpegToAvif);
+    startConvert(ConvertWorker::JpegToAvif);
 }
 
 void MainWindow::on_actionStartAvifToJpeg_triggered()
 {
-    startConvert(ConvWorker::AvifToJpeg);
+    startConvert(ConvertWorker::AvifToJpeg);
 }
 
 void MainWindow::on_actionStop_triggered()
